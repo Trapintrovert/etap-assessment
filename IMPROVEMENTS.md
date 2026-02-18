@@ -70,8 +70,8 @@ Use this list to fix gaps one by one. Check off items as you complete them.
 
 ## 10. Tests (coverage and confidence)
 
-- [ ] **10.1** Add at least one e2e test that runs a full flow (e.g. register → login → create wallet) with the `api` prefix and test DB so deployment behavior is validated.
-- [ ] **10.2** Optionally add unit tests for new authorization logic (e.g. user controller guards and self/admin checks).
+- [x] **10.1** Add at least one e2e test that runs a full flow (e.g. register → login → create wallet) with the `api` prefix and test DB so deployment behavior is validated.
+- [x] **10.2** Optionally add unit tests for new authorization logic (e.g. user controller guards and self/admin checks).
 
 ---
 
