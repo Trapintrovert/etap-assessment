@@ -93,4 +93,51 @@ describe('App (e2e)', () => {
       expect(walletRes.body.id).toBeDefined();
     });
   });
+
+  describe('user deletion and data consistency', () => {
+    const testPassword = 'DelUser123!';
+    const uniquePhone =
+      '+2348' + String(Math.floor(100000000 + Math.random() * 900000000));
+
+    it('deleting user removes user and their wallets (cascade)', async () => {
+      const server = request(app.getHttpServer());
+      const base = '/api';
+
+      const registerRes = await server
+        .post(`${base}/auth/register`)
+        .send({ phone: uniquePhone, password: testPassword });
+      expect(registerRes.status).toBe(201);
+      const userId = registerRes.body.user.id as string;
+      const token = registerRes.body.accessToken as string;
+
+      await server
+        .post(`${base}/wallets`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ currency: 'NGN' })
+        .expect(201);
+
+      await server
+        .delete(`${base}/users/${userId}`)
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+
+      const reRegisterRes = await server
+        .post(`${base}/auth/register`)
+        .send({ phone: uniquePhone, password: testPassword });
+      expect(reRegisterRes.status).toBe(201);
+
+      const loginRes = await server
+        .post(`${base}/auth/login`)
+        .send({ phone: uniquePhone, password: testPassword });
+      expect([200, 201]).toContain(loginRes.status);
+      const newToken = loginRes.body.accessToken as string;
+
+      const walletsRes = await server
+        .get(`${base}/wallets`)
+        .set('Authorization', `Bearer ${newToken}`)
+        .expect(200);
+      expect(Array.isArray(walletsRes.body)).toBe(true);
+      expect(walletsRes.body).toHaveLength(0);
+    });
+  });
 });

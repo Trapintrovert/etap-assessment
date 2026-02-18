@@ -24,14 +24,18 @@ export class Transfer {
   @Column({ name: 'from_wallet_id' })
   fromWalletId: string;
 
-  @ManyToOne(() => Wallet, (wallet) => wallet.transfersOut, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Wallet, (wallet) => wallet.transfersOut, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'from_wallet_id' })
   fromWallet: Wallet;
 
   @Column({ name: 'to_wallet_id' })
   toWalletId: string;
 
-  @ManyToOne(() => Wallet, (wallet) => wallet.transfersIn, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Wallet, (wallet) => wallet.transfersIn, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'to_wallet_id' })
   toWallet: Wallet;
 

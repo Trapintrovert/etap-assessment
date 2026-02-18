@@ -81,6 +81,15 @@ export class UserService {
     return this.userRepository.save(user);
   }
 
+  /**
+   * Delete a user by id. The database enforces referential integrity with CASCADE:
+   * - Wallets belonging to the user are deleted (wallets.user_id → users.id ON DELETE CASCADE).
+   * - Transactions in those wallets are deleted (transactions.wallet_id → wallets.id ON DELETE CASCADE).
+   * - Transfers from/to those wallets are deleted (transfers.from_wallet_id/to_wallet_id → wallets.id ON DELETE CASCADE).
+   * - Transfers initiated by this user are deleted (transfers.initiated_by_id → users.id ON DELETE CASCADE).
+   * - approved_by_id on any transfer is set to NULL if this user was the approver (ON DELETE SET NULL).
+   * No orphaned rows remain.
+   */
   async deleteUser(id: string): Promise<void> {
     await this.userRepository.delete(id);
   }

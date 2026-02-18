@@ -241,7 +241,7 @@ describe('UserService', () => {
   });
 
   describe('deleteUser', () => {
-    it('should call repository.delete with id', async () => {
+    it('should call repository.delete with id (DB CASCADE removes wallets, transactions, transfers)', async () => {
       mockRepository.delete.mockResolvedValue({ affected: 1 });
 
       await service.deleteUser('uuid-1');

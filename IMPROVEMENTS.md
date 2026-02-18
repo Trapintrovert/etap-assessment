@@ -63,8 +63,8 @@ Use this list to fix gaps one by one. Check off items as you complete them.
 
 ## 9. User delete and data consistency
 
-- [ ] **9.1** Confirm TypeORM relations for User (wallets, etc.) – either cascade on delete or explicitly delete/handle related entities so no orphaned or inconsistent data remains.
-- [ ] **9.2** Document or add a test that verifies user deletion behavior (e.g. wallets/transfers are handled as intended).
+- [x] **9.1** Confirm TypeORM relations for User (wallets, etc.) – either cascade on delete or explicitly delete/handle related entities so no orphaned or inconsistent data remains.
+- [x] **9.2** Document or add a test that verifies user deletion behavior (e.g. wallets/transfers are handled as intended).
 
 ---
 
