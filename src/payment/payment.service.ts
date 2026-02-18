@@ -80,6 +80,9 @@ export class PaymentService {
    * Handle Paystack webhook. Verifies signature.
    * - charge.success: credits wallet and sets transaction to COMPLETED (idempotent).
    * - charge.failed: sets transaction to FAILED; no wallet credit.
+   *
+   * Security: Do not log rawBody or full payload—Paystack payloads may contain
+   * customer email, authorization details, or other sensitive data. Only log event type.
    */
   async handleWebhook(rawBody: string, signature: string): Promise<void> {
     if (!this.paystackService.verifyWebhookSignature(rawBody, signature)) {
@@ -107,8 +110,12 @@ export class PaymentService {
     }
 
     if (event === 'charge.failed') {
-      await this.handleChargeFailed(reference);
-      this.logger.log(`Webhook processed charge.failed reference=${reference}`);
+      const transactionId = await this.handleChargeFailed(reference);
+      if (transactionId) {
+        this.logger.log(
+          `Webhook processed charge.failed transactionId=${transactionId}`,
+        );
+      }
       return;
     }
 
@@ -116,48 +123,53 @@ export class PaymentService {
       return;
     }
 
-    await this.handleChargeSuccess(payload.data!);
-    this.logger.log(
-      `Webhook processed charge.success reference=${reference} walletId=${payload.data?.metadata?.walletId ?? 'n/a'}`,
-    );
+    const transactionId = await this.handleChargeSuccess(payload.data!);
+    if (transactionId) {
+      this.logger.log(
+        `Webhook processed charge.success transactionId=${transactionId}`,
+      );
+    }
   }
 
-  private async handleChargeFailed(reference: string): Promise<void> {
+  private async handleChargeFailed(
+    reference: string,
+  ): Promise<string | undefined> {
     const transaction =
       await this.transactionService.transactionByReference(reference);
     if (!transaction) {
-      return;
+      return undefined;
     }
     if (transaction.status !== TransactionStatus.PENDING) {
-      return; // already COMPLETED or FAILED
+      return undefined; // already COMPLETED or FAILED
     }
     await this.transactionService.updateTransaction(transaction.id, {
       status: TransactionStatus.FAILED,
     });
+    return transaction.id;
   }
 
   private async handleChargeSuccess(data: {
     reference?: string;
     amount?: number;
     metadata?: { walletId?: string; userId?: string; currency?: string };
-  }): Promise<void> {
+  }): Promise<string | undefined> {
     const { reference, amount: amountKobo, metadata } = data;
     const walletId = metadata?.walletId;
     if (!walletId) {
-      return;
+      return undefined;
     }
 
     const transaction = await this.transactionService.transactionByReference(
       reference as string,
     );
     if (!transaction) {
-      return;
+      return undefined;
     }
     if (transaction.status === TransactionStatus.COMPLETED) {
-      return; // idempotency: already credited
+      return undefined; // idempotency: already credited
     }
     if (transaction.status === TransactionStatus.FAILED) {
-      return; // already marked failed; do not credit
+      return undefined; // already marked failed; do not credit
     }
 
     const amountInMajor = (amountKobo ?? 0) / 100;
@@ -165,5 +177,6 @@ export class PaymentService {
     await this.transactionService.updateTransaction(transaction.id, {
       status: TransactionStatus.COMPLETED,
     });
+    return transaction.id;
   }
 }

@@ -57,7 +57,7 @@ Use this list to fix gaps one by one. Check off items as you complete them.
 
 ## 8. Security (webhook / payload logging)
 
-- [ ] **8.1** Ensure the Paystack webhook handler (and any global logging) does not log full request body or payment metadata that could leak sensitive data.
+- [x] **8.1** Ensure the Paystack webhook handler (and any global logging) does not log full request body or payment metadata that could leak sensitive data.
 
 ---
 
