@@ -15,12 +15,15 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { User } from '../entities/user.entity';
+import { User, UserRole } from '../entities/user.entity';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { SelfOrAdminGuard } from '../auth/guards/self-or-admin.guard';
 import { Public } from '../auth/decorators/public.decorator';
+import { Roles } from '../auth/decorators/roles.decorator';
 
 @ApiTags('users')
 @Controller('users')
@@ -38,32 +41,39 @@ export class UserController {
     return this.userService.createUser(dto);
   }
 
+  @Get()
+  @ApiBearerAuth()
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Get all users (admin only)' })
+  @ApiResponse({ status: 200, description: 'All users' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden (admin only)' })
+  async getAllUsers(): Promise<User[]> {
+    return this.userService.allUsers();
+  }
+
   @Get(':id')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get user profile by id' })
+  @UseGuards(SelfOrAdminGuard)
+  @ApiOperation({ summary: 'Get user profile by id (self or admin)' })
   @ApiResponse({ status: 200, description: 'User profile (password excluded)' })
   @ApiResponse({ status: 400, description: 'Invalid UUID format' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden (not self or admin)' })
   @ApiResponse({ status: 404, description: 'User not found' })
   async getProfile(@Param('id', ParseUUIDPipe) id: string): Promise<User> {
     return this.userService.findUserByIdOrFail(id);
   }
 
-  @Get()
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get all users' })
-  @ApiResponse({ status: 200, description: 'All users' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async getAllUsers(): Promise<User[]> {
-    return this.userService.allUsers();
-  }
-
   @Put(':id')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Update user profile by id' })
+  @UseGuards(SelfOrAdminGuard)
+  @ApiOperation({ summary: 'Update user profile by id (self or admin)' })
   @ApiResponse({ status: 200, description: 'User profile updated' })
   @ApiResponse({ status: 400, description: 'Invalid input (validation error)' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden (not self or admin)' })
   @ApiResponse({ status: 404, description: 'User not found' })
   @ApiResponse({ status: 409, description: 'Phone number already exists' })
   async updateProfile(
@@ -75,9 +85,11 @@ export class UserController {
 
   @Delete(':id')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Delete user by id' })
+  @UseGuards(SelfOrAdminGuard)
+  @ApiOperation({ summary: 'Delete user by id (self or admin)' })
   @ApiResponse({ status: 200, description: 'User deleted' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden (not self or admin)' })
   @ApiResponse({ status: 404, description: 'User not found' })
   async deleteUser(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
     return this.userService.deleteUser(id);
