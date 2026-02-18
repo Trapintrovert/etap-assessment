@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, QueryRunner, Repository } from 'typeorm';
 import { Transaction, TransactionType } from '../entities/transaction.entity';
 import { Transfer, TransferStatus } from '../entities/transfer.entity';
 import { Wallet } from '../entities/wallet.entity';
@@ -63,29 +63,63 @@ export class TransferService {
 
   /**
    * Approve a pending transfer (admin only). Executes debit/credit and updates transfer.
+   * Uses SELECT ... FOR UPDATE so concurrent approve calls do not double-execute.
    *
    * @param id - Transfer ID
    * @param approvedById - Admin user ID approving the transfer
    */
   async approveTransfer(id: string, approvedById: string): Promise<Transfer> {
-    const transfer = await this.transferRepository.findOneOrFail({
-      where: { id },
-    });
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    if (transfer.status !== TransferStatus.PENDING_APPROVAL) {
-      throw new BadRequestException(
-        `Transfer is not pending approval (status: ${transfer.status})`,
+    try {
+      const transferRepo = queryRunner.manager.getRepository(Transfer);
+      const transfer = await transferRepo.findOne({
+        where: { id },
+        lock: { mode: 'pessimistic_write' },
+      });
+
+      if (!transfer) {
+        throw new BadRequestException('Transfer not found');
+      }
+      if (transfer.status !== TransferStatus.PENDING_APPROVAL) {
+        throw new BadRequestException(
+          `Transfer is not pending approval (status: ${transfer.status})`,
+        );
+      }
+
+      const amountNum = parseFloat(transfer.amount);
+      const walletRepo = queryRunner.manager.getRepository(Wallet);
+      const fromWallet = await walletRepo.findOneOrFail({
+        where: { id: transfer.fromWalletId },
+      });
+      const toWallet = await walletRepo.findOneOrFail({
+        where: { id: transfer.toWalletId },
+      });
+      if (fromWallet.currency !== toWallet.currency) {
+        throw new BadRequestException(
+          'Source and destination wallets must have the same currency',
+        );
+      }
+      const fromBalance = parseFloat(fromWallet.balance);
+      if (fromBalance < amountNum) {
+        throw new BadRequestException('Insufficient balance for approval');
+      }
+
+      const result = await this.executeApprovedTransferInTx(
+        queryRunner,
+        transfer,
+        approvedById,
       );
+      await queryRunner.commitTransaction();
+      return result;
+    } catch (err) {
+      await queryRunner.rollbackTransaction();
+      throw err;
+    } finally {
+      await queryRunner.release();
     }
-
-    const amount = parseFloat(transfer.amount);
-    await this.validateApprovalBalance(
-      transfer.fromWalletId,
-      transfer.toWalletId,
-      amount,
-    );
-
-    return this.executeApprovedTransfer(transfer, approvedById);
   }
 
   /**
@@ -115,93 +149,59 @@ export class TransferService {
   }
 
   /**
-   * Validate wallets exist, same currency, and sufficient balance for approval.
+   * Execute an approved transfer inside an existing transaction (caller holds lock on transfer).
    */
-  private async validateApprovalBalance(
-    fromWalletId: string,
-    toWalletId: string,
-    amount: number,
-  ): Promise<void> {
-    const fromWallet = await this.walletService.findWalletById(fromWalletId);
-    const toWallet = await this.walletService.findWalletById(toWalletId);
-
-    if (fromWallet.currency !== toWallet.currency) {
-      throw new BadRequestException(
-        'Source and destination wallets must have the same currency',
-      );
-    }
-
-    const balance = parseFloat(fromWallet.balance);
-    if (balance < amount) {
-      throw new BadRequestException('Insufficient balance for approval');
-    }
-  }
-
-  /**
-   * Execute an approved transfer: debit, credit, update transfer, create ledger entries.
-   */
-  private async executeApprovedTransfer(
+  private async executeApprovedTransferInTx(
+    queryRunner: QueryRunner,
     transfer: Transfer,
     approvedById: string,
   ): Promise<Transfer> {
     const { id, fromWalletId, toWalletId, amount } = transfer;
     const amountNum = parseFloat(amount);
 
-    const queryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
+    const walletRepo = queryRunner.manager.getRepository(Wallet);
+    const transferRepo = queryRunner.manager.getRepository(Transfer);
+    const transactionRepo = queryRunner.manager.getRepository(Transaction);
 
-    try {
-      const walletRepo = queryRunner.manager.getRepository(Wallet);
-      const transferRepo = queryRunner.manager.getRepository(Transfer);
-      const transactionRepo = queryRunner.manager.getRepository(Transaction);
+    const from = await walletRepo.findOneOrFail({
+      where: { id: fromWalletId },
+    });
+    const to = await walletRepo.findOneOrFail({
+      where: { id: toWalletId },
+    });
 
-      const from = await walletRepo.findOneOrFail({
-        where: { id: fromWalletId },
-      });
-      const to = await walletRepo.findOneOrFail({
-        where: { id: toWalletId },
-      });
-
-      const fromBalance = parseFloat(from.balance);
-      if (fromBalance < amountNum) {
-        throw new BadRequestException('Insufficient balance');
-      }
-      from.balance = (fromBalance - amountNum).toFixed(2);
-      to.balance = (parseFloat(to.balance) + amountNum).toFixed(2);
-
-      await walletRepo.save([from, to]);
-
-      const transferEntity = await transferRepo.findOneOrFail({
-        where: { id },
-      });
-      transferEntity.status = TransferStatus.COMPLETED;
-      transferEntity.approvedById = approvedById;
-      transferEntity.approvedAt = new Date();
-      const updatedTransfer = await transferRepo.save(transferEntity);
-
-      const transferOut = transactionRepo.create({
-        type: TransactionType.TRANSFER_OUT,
-        walletId: fromWalletId,
-        amount,
-        transferId: id,
-      });
-      const transferIn = transactionRepo.create({
-        type: TransactionType.TRANSFER_IN,
-        walletId: toWalletId,
-        amount,
-        transferId: id,
-      });
-      await transactionRepo.save([transferOut, transferIn]);
-
-      await queryRunner.commitTransaction();
-      return updatedTransfer;
-    } catch (err) {
-      await queryRunner.rollbackTransaction();
-      throw err;
-    } finally {
-      await queryRunner.release();
+    const fromBalance = parseFloat(from.balance);
+    if (fromBalance < amountNum) {
+      throw new BadRequestException('Insufficient balance');
     }
+    from.balance = (fromBalance - amountNum).toFixed(2);
+    to.balance = (parseFloat(to.balance) + amountNum).toFixed(2);
+
+    await walletRepo.save([from, to]);
+
+    const transferEntity = await transferRepo.findOneOrFail({
+      where: { id },
+    });
+    transferEntity.status = TransferStatus.COMPLETED;
+    transferEntity.approvedById = approvedById;
+    transferEntity.approvedAt = new Date();
+    const updatedTransfer = await transferRepo.save(transferEntity);
+
+    const transferOut = transactionRepo.create({
+      type: TransactionType.TRANSFER_OUT,
+      walletId: fromWalletId,
+      amount,
+      transferId: id,
+    });
+    const transferIn = transactionRepo.create({
+      type: TransactionType.TRANSFER_IN,
+      walletId: toWalletId,
+      amount,
+      transferId: id,
+    });
+    await transactionRepo.save([transferOut, transferIn]);
+
+    return updatedTransfer;
   }
 
   /**

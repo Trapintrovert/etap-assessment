@@ -70,6 +70,7 @@ describe('TransferService', () => {
     const transferRepo = {
       create: jest.fn((data: Record<string, unknown>) => ({ ...data })),
       save: jest.fn(),
+      findOne: jest.fn(),
       findOneOrFail: jest.fn(),
     };
     const transactionRepo = {
@@ -121,7 +122,10 @@ describe('TransferService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TransferService,
-        { provide: getRepositoryToken(Transfer), useValue: mockTransferRepository },
+        {
+          provide: getRepositoryToken(Transfer),
+          useValue: mockTransferRepository,
+        },
         { provide: WalletService, useValue: mockWalletService },
         { provide: DataSource, useValue: mockDataSource },
         { provide: ConfigService, useValue: mockConfigService },
@@ -233,18 +237,16 @@ describe('TransferService', () => {
 
   describe('approveTransfer', () => {
     it('should approve pending transfer and update balances', async () => {
-      mockTransferRepository.findOneOrFail.mockResolvedValue({
-        ...mockPendingTransfer,
-      });
-      mockWalletService.findWalletById
-        .mockResolvedValueOnce({ ...fromWallet, balance: '2000000' })
-        .mockResolvedValueOnce({ ...toWallet, balance: '0' });
-
       const qr = createQueryRunner();
+      const fromWithBalance = { ...fromWallet, balance: '2000000' };
+      const toWithBalance = { ...toWallet, balance: '0' };
       qr.walletRepo.findOneOrFail
-        .mockResolvedValueOnce({ ...fromWallet, balance: '2000000' })
-        .mockResolvedValueOnce({ ...toWallet, balance: '0' });
+        .mockResolvedValueOnce(fromWithBalance)
+        .mockResolvedValueOnce(toWithBalance)
+        .mockResolvedValueOnce(fromWithBalance)
+        .mockResolvedValueOnce(toWithBalance);
       qr.walletRepo.save.mockResolvedValue([]);
+      qr.transferRepo.findOne.mockResolvedValue({ ...mockPendingTransfer });
       qr.transferRepo.findOneOrFail.mockResolvedValue(mockPendingTransfer);
       qr.transferRepo.save.mockResolvedValue({
         ...mockPendingTransfer,
@@ -258,14 +260,32 @@ describe('TransferService', () => {
         'admin-uuid-1',
       );
 
-      expect(mockTransferRepository.findOneOrFail).toHaveBeenCalledWith({
-        where: { id: 'transfer-uuid-1' },
-      });
+      expect(qr.transferRepo.findOne).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'transfer-uuid-1' },
+          lock: { mode: 'pessimistic_write' },
+        }),
+      );
       expect(result.status).toBe(TransferStatus.COMPLETED);
     });
 
+    it('should throw BadRequestException when transfer is not found', async () => {
+      const qr = createQueryRunner();
+      qr.transferRepo.findOne.mockResolvedValue(null);
+      mockDataSource.createQueryRunner.mockReturnValue(qr);
+
+      await expect(
+        service.approveTransfer('transfer-uuid-1', 'admin-uuid-1'),
+      ).rejects.toThrow(BadRequestException);
+      await expect(
+        service.approveTransfer('transfer-uuid-1', 'admin-uuid-1'),
+      ).rejects.toThrow('Transfer not found');
+    });
+
     it('should throw BadRequestException when transfer is not pending', async () => {
-      mockTransferRepository.findOneOrFail.mockResolvedValue(mockTransfer);
+      const qr = createQueryRunner();
+      qr.transferRepo.findOne.mockResolvedValue(mockTransfer);
+      mockDataSource.createQueryRunner.mockReturnValue(qr);
 
       await expect(
         service.approveTransfer('transfer-uuid-1', 'admin-uuid-1'),
@@ -273,6 +293,19 @@ describe('TransferService', () => {
       await expect(
         service.approveTransfer('transfer-uuid-1', 'admin-uuid-1'),
       ).rejects.toThrow('Transfer is not pending approval');
+    });
+
+    it('rejects when transfer is already completed (simulates second concurrent approve)', async () => {
+      const qr = createQueryRunner();
+      qr.transferRepo.findOne.mockResolvedValue({
+        ...mockPendingTransfer,
+        status: TransferStatus.COMPLETED,
+      });
+      mockDataSource.createQueryRunner.mockReturnValue(qr);
+
+      await expect(
+        service.approveTransfer('transfer-uuid-1', 'admin-uuid-2'),
+      ).rejects.toThrow(BadRequestException);
     });
   });
 

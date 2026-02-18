@@ -29,8 +29,8 @@ Use this list to fix gaps one by one. Check off items as you complete them.
 
 ## 4. Transfer approval concurrency
 
-- [ ] **4.1** Prevent double execution when two admins approve the same pending transfer (e.g. use `SELECT ... FOR UPDATE` when loading the transfer for approval, or a unique constraint + status transition so each transfer can be completed only once).
-- [ ] **4.2** Add or adjust tests to cover concurrent approval behavior if possible.
+- [x] **4.1** Prevent double execution when two admins approve the same pending transfer (e.g. use `SELECT ... FOR UPDATE` when loading the transfer for approval, or a unique constraint + status transition so each transfer can be completed only once).
+- [x] **4.2** Add or adjust tests to cover concurrent approval behavior if possible.
 
 ---
 
