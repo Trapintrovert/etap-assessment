@@ -10,7 +10,11 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('register')
-  @ApiOperation({ summary: 'Register a new user' })
+  @ApiOperation({
+    summary: 'Self-registration',
+    description:
+      'Create your own account. Returns user + JWT (no auth required). For admin creating users without auto-login, use POST /api/users instead (admin only).',
+  })
   @ApiResponse({
     status: 201,
     description: 'User created and JWT token returned',

@@ -37,7 +37,7 @@ export class UserController {
   @ApiOperation({
     summary: 'Create user (admin only)',
     description:
-      'Admin creates a new user without auto-login. For self-registration (returns JWT), use POST /api/auth/register instead.',
+      'Admin-only user creation. Creates a user without returning a JWT or logging them in. For self-registration (returns user + JWT), use POST /api/auth/register instead.',
   })
   @ApiResponse({ status: 201, description: 'User created' })
   @ApiResponse({ status: 400, description: 'Invalid input (validation error)' })
@@ -52,7 +52,11 @@ export class UserController {
   @ApiBearerAuth()
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN)
-  @ApiOperation({ summary: 'Get all users (admin only)' })
+  @ApiOperation({
+    summary: 'List all users',
+    description:
+      'Admin only. Returns all users in the system (password excluded).',
+  })
   @ApiResponse({ status: 200, description: 'All users' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden (admin only)' })
@@ -63,7 +67,11 @@ export class UserController {
   @Get(':id')
   @ApiBearerAuth()
   @UseGuards(SelfOrAdminGuard)
-  @ApiOperation({ summary: 'Get user profile by id (self or admin)' })
+  @ApiOperation({
+    summary: 'Get user profile by id',
+    description:
+      'Own profile or admin. You can read your own user (id = your user id); admins can read any user. Returns user without password.',
+  })
   @ApiResponse({ status: 200, description: 'User profile (password excluded)' })
   @ApiResponse({ status: 400, description: 'Invalid UUID format' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })

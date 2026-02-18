@@ -50,8 +50,8 @@ Use this list to fix gaps one by one. Check off items as you complete them.
 
 ## 7. API documentation (Swagger)
 
-- [ ] **7.1** In Swagger, document **POST /users** vs **POST /auth/register** (who should use which; e.g. “Admin-only user creation” vs “Self-registration”).
-- [ ] **7.2** Add short descriptions for **GET /users** and **GET /users/:id** (e.g. “Admin only” or “Own profile or admin”) once authorization is implemented.
+- [x] **7.1** In Swagger, document **POST /users** vs **POST /auth/register** (who should use which; e.g. “Admin-only user creation” vs “Self-registration”).
+- [x] **7.2** Add short descriptions for **GET /users** and **GET /users/:id** (e.g. “Admin only” or “Own profile or admin”) once authorization is implemented.
 
 ---
 

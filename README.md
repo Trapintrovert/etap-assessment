@@ -24,9 +24,11 @@ A NestJS REST API for a wallet system with user authentication, multi-currency w
 - **Credits (Paystack)**: Initialize Paystack payments to credit a wallet. Webhook handles charge.success and updates balance.
 - **Transfers**: Wallet-to-wallet transfers. Amounts above a threshold require admin approval before execution.
 - **Transactions**: List transactions by wallet, user, or reference. Admin can view all transactions.
-- **Admin**: Approve/reject pending transfers. Monthly payment summaries (aggregate by type and currency).
-- **Users**: Get profile, update, delete (JWT required).
-- **Security**: CORS (configurable), Helmet security headers, global rate limiting (configurable; webhook excluded), consistent error responses.
+- **Admin**: Approve/reject pending transfers (single execution per transfer via DB locking). Monthly payment summaries (aggregate by type and currency).
+- **Users**: Admin-only list and create user (POST /users); self or admin for get/update/delete by id. Self-registration via `POST /api/auth/register` (returns JWT).
+- **Security**: CORS (configurable), Helmet security headers, global rate limiting (configurable; webhook excluded), consistent error responses. Request logging for 4xx/5xx; business-event logging (no passwords or secrets).
+- **Validation**: Request DTOs validated with clear, user-friendly error messages.
+- **Testing**: Unit tests and E2E tests (critical path: register → login → create wallet) using the `/api` prefix.
 
 ---
 
@@ -170,11 +172,12 @@ npm run start:prod
 
 ### Other commands
 
-| Command        | Description                    |
-|----------------|--------------------------------|
-| `npm run start`| Start without watch            |
-| `npm run build`| Build for production           |
-| `npm run lint` | Run ESLint                     |
+| Command          | Description                                      |
+|------------------|--------------------------------------------------|
+| `npm run start`  | Start without watch                              |
+| `npm run build`  | Build for production                             |
+| `npm run lint`   | Run ESLint                                       |
+| `npm run test:e2e` | Run E2E tests (needs DB from `.env`)           |
 
 ---
 
@@ -189,10 +192,10 @@ Default PORT is 8000; `.env.example` sets PORT=3000. Use the port from your `.en
 ### How to use Swagger
 
 1. Open the link in your browser.
-2. **Register**: `POST /api/auth/register` with `phone` and `password`.
+2. **Register**: `POST /api/auth/register` (self-registration; returns user + JWT). For admin creating users without login, use `POST /api/users` (admin only)—see operation descriptions in Swagger.
 3. Copy the `accessToken` from the response.
 4. Click **Authorize**, paste the token (with or without `Bearer ` prefix), and authorize.
-5. You can now call protected endpoints (wallets, transfers, etc.).
+5. You can now call protected endpoints (wallets, transfers, users, etc.). User endpoints document access rules (admin only vs self or admin).
 
 ### Base URL
 
@@ -212,12 +215,17 @@ All API routes are prefixed with `/api`, e.g.:
 # Run all unit tests
 npm test
 
+# Run E2E tests (uses .env DB; critical path: register → login → create wallet)
+npm run test:e2e
+
 # Run with coverage
 npm run test:cov
 
 # Run tests in watch mode
 npm run test:watch
 ```
+
+E2E tests use the same global prefix (`/api`) as production and require a running database (same `.env` as development).
 
 ---
 
