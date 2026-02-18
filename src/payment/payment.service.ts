@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   TransactionStatus,
@@ -18,6 +18,8 @@ export interface InitializePaymentResult {
 
 @Injectable()
 export class PaymentService {
+  private readonly logger = new Logger(PaymentService.name);
+
   constructor(
     private readonly paystackService: PaystackService,
     private readonly walletService: WalletService,
@@ -106,6 +108,7 @@ export class PaymentService {
 
     if (event === 'charge.failed') {
       await this.handleChargeFailed(reference);
+      this.logger.log(`Webhook processed charge.failed reference=${reference}`);
       return;
     }
 
@@ -114,6 +117,9 @@ export class PaymentService {
     }
 
     await this.handleChargeSuccess(payload.data!);
+    this.logger.log(
+      `Webhook processed charge.success reference=${reference} walletId=${payload.data?.metadata?.walletId ?? 'n/a'}`,
+    );
   }
 
   private async handleChargeFailed(reference: string): Promise<void> {

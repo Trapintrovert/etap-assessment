@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, QueryRunner, Repository } from 'typeorm';
@@ -10,6 +10,8 @@ import { CreateTransferDto } from './dto/create-transfer.dto';
 
 @Injectable()
 export class TransferService {
+  private readonly logger = new Logger(TransferService.name);
+
   constructor(
     @InjectRepository(Transfer)
     private transferRepository: Repository<Transfer>,
@@ -50,15 +52,28 @@ export class TransferService {
     );
 
     if (amount > threshold) {
-      return this.createPendingTransfer(
+      const pending = await this.createPendingTransfer(
         fromWalletId,
         toWalletId,
         amount,
         userId,
       );
+      this.logger.log(
+        `Transfer created (pending) transferId=${pending.id} userId=${userId} amount=${amount}`,
+      );
+      return pending;
     }
 
-    return this.executeTransfer(fromWalletId, toWalletId, amount, userId);
+    const completed = await this.executeTransfer(
+      fromWalletId,
+      toWalletId,
+      amount,
+      userId,
+    );
+    this.logger.log(
+      `Transfer created (completed) transferId=${completed.id} userId=${userId} amount=${amount}`,
+    );
+    return completed;
   }
 
   /**
@@ -113,6 +128,9 @@ export class TransferService {
         approvedById,
       );
       await queryRunner.commitTransaction();
+      this.logger.log(
+        `Transfer approved transferId=${id} approvedById=${approvedById} amount=${transfer.amount}`,
+      );
       return result;
     } catch (err) {
       await queryRunner.rollbackTransaction();
@@ -139,7 +157,9 @@ export class TransferService {
     }
 
     transfer.status = TransferStatus.REJECTED;
-    return this.transferRepository.save(transfer);
+    const saved = await this.transferRepository.save(transfer);
+    this.logger.log(`Transfer rejected transferId=${id}`);
+    return saved;
   }
 
   async allPendingTransfers(): Promise<Transfer[]> {

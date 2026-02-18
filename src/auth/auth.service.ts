@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { User } from '../entities/user.entity';
@@ -14,6 +14,8 @@ export interface AuthResponse {
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly userService: UserService,
     private readonly jwtService: JwtService,
@@ -25,6 +27,7 @@ export class AuthService {
       sub: user.id,
       phone: user.phone,
     });
+    this.logger.log(`User registered userId=${user.id} phone=${user.phone}`);
     return { user, accessToken };
   }
 
@@ -45,6 +48,7 @@ export class AuthService {
       sub: user.id,
       phone: user.phone,
     });
+    this.logger.log(`Login success userId=${user.id} phone=${user.phone}`);
     return { user, accessToken };
   }
 }

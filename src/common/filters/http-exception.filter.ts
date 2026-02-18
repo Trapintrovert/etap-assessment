@@ -36,7 +36,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
       statusCode: status,
       error:
         exception instanceof HttpException
-          ? (exception.getResponse() as { error?: string })?.error ?? undefined
+          ? ((exception.getResponse() as { error?: string })?.error ??
+            undefined)
           : 'Internal Server Error',
       message: Array.isArray(body.message) ? body.message : body.message,
     };
@@ -45,6 +46,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
       this.logger.error(
         `${request.method} ${request.url} ${status}`,
         exception instanceof Error ? exception.stack : String(exception),
+      );
+    } else if (status >= 400) {
+      this.logger.warn(
+        `${request.method} ${request.url} ${status} ${Array.isArray(body.message) ? body.message.join(', ') : body.message}`,
       );
     }
 

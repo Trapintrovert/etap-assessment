@@ -43,8 +43,8 @@ Use this list to fix gaps one by one. Check off items as you complete them.
 
 ## 6. Logging and observability
 
-- [ ] **6.1** Add structured logging (e.g. Nest `Logger`) for important business events (e.g. transfer created/approved, webhook processed, login success) without logging passwords or secrets.
-- [ ] **6.2** Optionally add a simple request log (method + path + status) for 4xx/5xx if not already covered.
+- [x] **6.1** Add structured logging (e.g. Nest `Logger`) for important business events (e.g. transfer created/approved, webhook processed, login success) without logging passwords or secrets.
+- [x] **6.2** Optionally add a simple request log (method + path + status) for 4xx/5xx if not already covered.
 
 ---
 
