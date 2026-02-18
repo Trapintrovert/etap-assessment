@@ -13,7 +13,7 @@ export class UpdateUserDto {
     description: 'Phone number (must be unique)',
   })
   @IsOptional()
-  @IsString()
+  @IsString({ message: 'Phone must be a string when provided' })
   @Matches(PHONE_REGEX, {
     message:
       'Phone must be in Nigerian format (e.g. +2348012345678 or 08012345678)',

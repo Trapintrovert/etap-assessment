@@ -36,8 +36,8 @@ Use this list to fix gaps one by one. Check off items as you complete them.
 
 ## 5. Validation and error messages
 
-- [ ] **5.1** Review all DTOs used in API endpoints; ensure they have appropriate `class-validator` rules.
-- [ ] **5.2** Where useful, add custom `message` in validators so API responses are clear and user-friendly.
+- [x] **5.1** Review all DTOs used in API endpoints; ensure they have appropriate `class-validator` rules.
+- [x] **5.2** Where useful, add custom `message` in validators so API responses are clear and user-friendly.
 
 ---
 

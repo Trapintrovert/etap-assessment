@@ -8,8 +8,8 @@ const PHONE_REGEX = /^(\+234|0)[0-9]{10}$/;
 
 export class LoginDto {
   @ApiProperty({ example: '+2348012345678', description: 'Phone number' })
-  @IsNotEmpty()
-  @IsString()
+  @IsNotEmpty({ message: 'Phone is required' })
+  @IsString({ message: 'Phone must be a string' })
   @Matches(PHONE_REGEX, {
     message:
       'Phone must be in Nigerian format (e.g. +2348012345678 or 08012345678)',
@@ -17,8 +17,8 @@ export class LoginDto {
   phone: string;
 
   @ApiProperty({ example: 'SecurePass123!', minLength: 6 })
-  @IsNotEmpty()
-  @IsString()
+  @IsNotEmpty({ message: 'Password is required' })
+  @IsString({ message: 'Password must be a string' })
   @MinLength(6, { message: 'Password must be at least 6 characters' })
   password: string;
 }

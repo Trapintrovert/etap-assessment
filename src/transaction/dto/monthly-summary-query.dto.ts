@@ -10,9 +10,9 @@ export class MonthlySummaryQueryDto {
     maximum: 2100,
   })
   @Type(() => Number)
-  @IsInt()
-  @Min(2000)
-  @Max(2100)
+  @IsInt({ message: 'Year must be a whole number' })
+  @Min(2000, { message: 'Year must be 2000 or later' })
+  @Max(2100, { message: 'Year must be 2100 or earlier' })
   year: number;
 
   @ApiProperty({
@@ -22,8 +22,8 @@ export class MonthlySummaryQueryDto {
     maximum: 12,
   })
   @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  @Max(12)
+  @IsInt({ message: 'Month must be a whole number (1-12)' })
+  @Min(1, { message: 'Month must be between 1 and 12' })
+  @Max(12, { message: 'Month must be between 1 and 12' })
   month: number;
 }
