@@ -22,8 +22,8 @@ Use this list to fix gaps one by one. Check off items as you complete them.
 
 ## 3. E2E tests
 
-- [ ] **3.1** In e2e test bootstrap, apply the same global prefix as production (e.g. `app.setGlobalPrefix('api')`) so **GET /api** is tested instead of **GET /**.
-- [ ] **3.2** Add at least one e2e flow for a critical path (e.g. register → login → create wallet, or auth + one protected route) using the real app module and test DB.
+- [x] **3.1** In e2e test bootstrap, apply the same global prefix as production (e.g. `app.setGlobalPrefix('api')`) so **GET /api** is tested instead of **GET /**.
+- [x] **3.2** Add at least one e2e flow for a critical path (e.g. register → login → create wallet, or auth + one protected route) using the real app module and test DB.
 
 ---
 
