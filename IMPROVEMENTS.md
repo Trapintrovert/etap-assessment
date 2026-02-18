@@ -15,8 +15,8 @@ Use this list to fix gaps one by one. Check off items as you complete them.
 
 ## 2. Duplicate / overlapping user-creation APIs
 
-- [ ] **2.1** Decide semantics: is **POST /users** for admin-only user creation, or should it be removed in favor of **POST /auth/register**?
-- [ ] **2.2** If keeping both: make **POST /users** admin-only and document in README/Swagger (e.g. “Admin creates user without auto-login”). If removing: delete route and point docs to register only.
+- [x] **2.1** Decide semantics: is **POST /users** for admin-only user creation, or should it be removed in favor of **POST /auth/register**?
+- [x] **2.2** If keeping both: make **POST /users** admin-only and document in README/Swagger (e.g. “Admin creates user without auto-login”). If removing: delete route and point docs to register only.
 
 ---
 

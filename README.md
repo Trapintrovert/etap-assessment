@@ -225,7 +225,7 @@ npm run test:watch
 
 ### Auth (no JWT required)
 
-- `POST /api/auth/register` — Create account, returns user + JWT
+- `POST /api/auth/register` — **Self-registration**: create your own account, returns user + JWT
 - `POST /api/auth/login` — Login, returns user + JWT
 
 ### Wallets (JWT required)
@@ -255,11 +255,11 @@ npm run test:watch
 
 ### Users (JWT required)
 
-- `POST /api/users` — Create user (public)
-- `GET /api/users` — All users
-- `GET /api/users/:id` — User profile
-- `PUT /api/users/:id` — Update profile
-- `DELETE /api/users/:id` — Delete user
+- `POST /api/users` — Create user (**admin only**; creates user without auto-login; for self-signup use `POST /api/auth/register`)
+- `GET /api/users` — All users (admin only)
+- `GET /api/users/:id` — User profile (self or admin)
+- `PUT /api/users/:id` — Update profile (self or admin)
+- `DELETE /api/users/:id` — Delete user (self or admin)
 
 ---
 

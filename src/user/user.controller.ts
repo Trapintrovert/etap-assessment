@@ -22,7 +22,6 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { SelfOrAdminGuard } from '../auth/guards/self-or-admin.guard';
-import { Public } from '../auth/decorators/public.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 
 @ApiTags('users')
@@ -32,10 +31,18 @@ export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Post()
-  @Public()
-  @ApiOperation({ summary: 'Create a new user' })
+  @ApiBearerAuth()
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({
+    summary: 'Create user (admin only)',
+    description:
+      'Admin creates a new user without auto-login. For self-registration (returns JWT), use POST /api/auth/register instead.',
+  })
   @ApiResponse({ status: 201, description: 'User created' })
   @ApiResponse({ status: 400, description: 'Invalid input (validation error)' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden (admin only)' })
   @ApiResponse({ status: 409, description: 'Phone number already exists' })
   async createUser(@Body() dto: CreateUserDto): Promise<User> {
     return this.userService.createUser(dto);
