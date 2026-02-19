@@ -22,7 +22,8 @@
     "migration:generate": "npm run typeorm -- migration:generate src/migrations/InitialSchema -d src/database/data-source.ts",
     "migration:run": "npm run typeorm -- migration:run -d src/database/data-source.ts",
     "migration:revert": "npm run typeorm -- migration:revert -d src/database/data-source.ts",
-    "seed:admin": "ts-node -r tsconfig-paths/register scripts/seed-admin.ts"
+    "seed:admin": "ts-node -r tsconfig-paths/register scripts/seed-admin.ts",
+    "credit:all": "ts-node -r tsconfig-paths/register scripts/credit-all-users.ts"
   },
   "dependencies": {
     "@nestjs/axios": "^3.0.0",

@@ -172,12 +172,14 @@ npm run start:prod
 
 ### Other commands
 
-| Command          | Description                                      |
-|------------------|--------------------------------------------------|
-| `npm run start`  | Start without watch                              |
-| `npm run build`  | Build for production                             |
-| `npm run lint`   | Run ESLint                                       |
-| `npm run test:e2e` | Run E2E tests (needs DB from `.env`)           |
+| Command            | Description                                                          |
+|--------------------|----------------------------------------------------------------------|
+| `npm run start`    | Start without watch                                                  |
+| `npm run build`    | Build for production                                                 |
+| `npm run lint`     | Run ESLint                                                           |
+| `npm run test:e2e` | Run E2E tests (needs DB from `.env`)                                  |
+| `npm run seed:admin` | Create the first admin user (see [Detailed Setup](#detailed-setup)) |
+| `npm run credit:all` | Credit 2,000,000 NGN to each user (optional; for demo/test data)    |
 
 ---
 
@@ -291,6 +293,8 @@ E2E tests use the same global prefix (`/api`) as production and require a runnin
 | `LARGE_TRANSFER_THRESHOLD`| No       | Amount (NGN) above which admin approval required (default: 1000000) |
 | `ADMIN_PHONE`             | No       | Phone for seed admin (default: +2348000000000)             |
 | `ADMIN_PASSWORD`          | No       | Password for seed admin (default: Admin@123)               |
+| `CREDIT_AMOUNT`           | No       | Amount to credit per user for `npm run credit:all` (default: 2000000) |
+| `CREDIT_CURRENCY`         | No       | Currency for credit:all script (default: NGN)               |
 | `CORS_ORIGIN`             | No       | CORS allowed origins: `*` or comma-separated list (default: `*`) |
 | `THROTTLE_TTL`            | No       | Rate limit window in ms (default: 60000)                    |
 | `THROTTLE_LIMIT`          | No       | Max requests per IP per window (default: 100)              |
